@@ -1,3 +1,6 @@
+# These properties should be unique to each installation
+src/main/java/smellcps/config.properties
+
 .classpath
 .project
 
