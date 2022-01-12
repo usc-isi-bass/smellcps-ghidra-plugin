@@ -23,7 +23,7 @@ public class AngrRunner {
 		String python_path = null;
 		String script_path = null;
 		try {
-			FileInputStream propertiesInputStream = new FileInputStream(Paths.get(System.getProperty("user.dir"), "src", "main", "java", "smellcps", "config.properties").toString());
+			FileInputStream propertiesInputStream = new FileInputStream(Paths.get(System.getProperty("user.home"), ".ghidra", "smellcps_plugin_config.properties").toString());
 			config.load(propertiesInputStream);
 			python_path = config.getProperty("python3");
 			script_path = config.getProperty("driver");
