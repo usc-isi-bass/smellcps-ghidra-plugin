@@ -9,9 +9,11 @@ We recommend you develop and run the plugin inside a Docker image, using the scr
 1. Ghidra can be run with the usual `ghidraRun` script, found in `/home/user/ghidra/`.
 
 ### Without Docker
-1. Update `src/main/java/smellcps/config.properties` such that:
+1. Update `smellcps_plugin_config.properties` such that:
     1. `python3` points to the `python` binary in your angr virtual environment.
     1. `driver` points to the `driver_for_ghidra.py` file in your clone of the [math_to_symbexpr_map_generation](https://github.com/usc-isi-bass/math_to_symbexpr_map_generation) repository.
+
+Move `smellcps_plugin_config.properties` to `$HOME/.ghidra/`
 ##### With Eclipse
 1. Install the GhidraDev Eclipse plugin by following the instructions [here](https://ghidra-sre.org/InstallationGuide.html#Extensions).
 1. From within GhidraDev in Eclipse, create a new Ghidra Module Project.
