@@ -1,7 +1,6 @@
 from ubuntu:latest
 
 ARG USER_ID
-ARG GROUP_ID
 #ARG XAUTH_COOKIE
 
 ENV TZ=America/Los_Angeles
@@ -31,8 +30,7 @@ RUN apt-get install -y python3-dev
 RUN apt-get install -y default-jre
 RUN apt-get install -y default-jdk
 
-RUN addgroup --gid $GROUP_ID user
-RUN adduser --home /home/user/ --shell /bin/bash --disabled-password --uid $USER_ID --gid $GROUP_ID user
+RUN adduser --home /home/user/ --shell /bin/bash --disabled-password --uid $USER_ID user
 RUN passwd --delete user
 RUN usermod -aG sudo user
 
