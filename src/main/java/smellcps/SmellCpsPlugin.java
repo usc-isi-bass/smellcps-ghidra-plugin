@@ -4,9 +4,9 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -73,10 +73,11 @@ import generic.json.*;
 public class SmellCpsPlugin extends ProgramPlugin {
 
 	MyProvider provider;
+	AngrRunner angrRunner;
 
 	/**
 	 * Plugin constructor.
-	 * 
+	 *
 	 * @param tool The plugin tool that this plugin is added to.
 	 */
 	public SmellCpsPlugin(PluginTool tool) {
@@ -106,7 +107,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 	}
 
 	// TODO: If provider is desired, it is recommended to move it to its own file
-	private static class MyProvider extends ComponentProvider {
+	private class MyProvider extends ComponentProvider {
 		Program program;
 		DecompInterface decompInterface;
 		private JPanel panel;
@@ -208,7 +209,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 					calledFuncsPanel.removeAll();
 					String funcId = funcJtf.getText();
 					Function func = getFunctionByNameOrAddr(funcId);
-					
+
 					// Get instructions:
 					AddressSetView funcAddressSetView = func.getBody();
 					System.out.println("Instructions");
@@ -225,7 +226,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 							JLabel calledFuncLabel = new JLabel();
 							calledFuncPanel.add(calledFuncLabel);
 							JTextField funcNameJtf = new JTextField();
-							
+
 							calledFuncPanel.add(funcNameJtf);
 							JTextField argTypesJtf = new JTextField();
 							calledFuncPanel.add(argTypesJtf);
@@ -238,18 +239,18 @@ public class SmellCpsPlugin extends ProgramPlugin {
 									// TODO disable the other components when unchecked
 								}
 							});
-							
+
 							Address[] flows = insn.getFlows();
 							String flowFuncName = "?";
 							String flowFuncAddr = "?";
 							System.out.printf("insn: %s address: %s type: %s is call: %s\n", insn, addr, flowType, isCall);
 							for (Address flowAddr : flows) {
-								 
+
 								Function flowFunc = program.getListing().getFunctionAt(flowAddr);
 								flowFuncName = flowFunc.getName();
 								flowFuncAddr = "0x" + flowFunc.getEntryPoint();
-								
-								
+
+
 								System.out.printf("flow addr: %s func name: %s\n", flowAddr, flowFunc.getName());
 								List<String> paramDataTypes = getParamDataTypeStrs(flowFunc);
 								argTypesJtf.setText(String.join(",", paramDataTypes));
@@ -258,10 +259,10 @@ public class SmellCpsPlugin extends ProgramPlugin {
 								funcNameJtf.setText(flowFuncName);
 							}
 							calledFuncLabel.setText("0x" + addr + " --> " + flowFuncName + "@" + flowFuncAddr);
-							
+
 
 						}
-						
+
 					}
 
 					//Function func = getFunctionByName(funcName);
@@ -302,20 +303,19 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			});
 
 			JButton runButton = new JButton("Run");
+			JButton killButton = new JButton("Stop");
 
 			runButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
-					outputJta.setText("Running symbolic execution...");
-					outputJta.repaint();
 					String binFilePath = program.getExecutablePath();
 					String funcId = funcJtf.getText();
 
 					//Function func = getFunctionByName(funcName);
 					//Function func = program.getFunctionManager().getFunctionAt(program.getAddressFactory().getDefaultAddressSpace().getAddress(Long.decode(funcName)));
 					Function func = getFunctionByNameOrAddr(funcId);
-					
 
-					
+
+
 					long funcAddr = func.getEntryPoint().getOffset();
 					String[] varNames = varNamesJtf.getText().split(",");
 					String[] varCtypes = varCtypesJtf.getText().split(",");
@@ -353,16 +353,35 @@ public class SmellCpsPlugin extends ProgramPlugin {
 					}
 
 					InputArgs inputArgs = new InputArgs(binFilePath, targetFuncPrototype, shortCircuitFuncPrototypes);
-
-					AngrRunner ar = new AngrRunner(binFilePath, inputArgs);
-					try {
-						String output = ar.run();
-						outputJta.setText(output);
-					} catch (PythonScriptException pse) {
-						Msg.showInfo(getClass(), panel, "Python Script Error", pse.getMessage());
-					}
+					Thread angrRunnerThread = new Thread() {
+						public void run() {
+							outputJta.setText("Running symbolic execution...");
+							outputJta.repaint();
+							angrRunner = new AngrRunner(binFilePath, inputArgs);
+							try {
+								runButton.setEnabled(false);
+								killButton.setEnabled(true);
+								String output = angrRunner.run();
+								outputJta.setText(output);
+								runButton.setEnabled(true);
+								killButton.setEnabled(false);
+							} catch (PythonScriptException pse) {
+								Msg.showInfo(getClass(), panel, "Python Script Error", pse.getMessage());
+							}
+						}
+					};
+					angrRunnerThread.start();
 				}
 			});
+			killButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					angrRunner.stop();
+					runButton.setEnabled(true);
+					killButton.setEnabled(false);
+
+				}
+			});
+			killButton.setEnabled(false);
 
 			panel.add(funcPanel);
 			panel.add(varCtypesPanel);
@@ -371,6 +390,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			panel.add(calledFuncsButton);
 			panel.add(new JScrollPane(calledFuncsPanel));
 			panel.add(runButton, BorderLayout.CENTER);
+			panel.add(killButton, BorderLayout.CENTER);
 			panel.add(new JScrollPane(outputJta));
 
 			setVisible(true);
@@ -385,7 +405,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			}
 			return null;
 		}
-		
+
 		private Function getFunctionByNameOrAddr(String nameOrAddr) {
 			try {
 				long addr = Long.decode(nameOrAddr);
@@ -394,7 +414,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			} catch(NumberFormatException nfe) {
 				Function func = getFunctionByName(nameOrAddr);
 				return func;
-				
+
 			}
 		}
 
@@ -407,7 +427,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			FunctionPrototype fp = hf.getFunctionPrototype();
 			System.out.println("Function Prototype:");
 			System.out.println(fp.getReturnStorage());
-			
+
 			for (int i = 0; i < fp.getNumParams(); i++) {
 				HighSymbol hp = fp.getParam(i);
 				VariableStorage storage = hp.getStorage();
@@ -429,7 +449,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 														// Parameter ID
 			System.out.println(fs.getGenericCallingConvention());
 			System.out.println(fs);
-			
+
 			System.out.println("Parameters:");
 			for (ParameterDefinition pd : fs.getArguments()) {
 				DataType dt = pd.getDataType();
@@ -444,9 +464,9 @@ public class SmellCpsPlugin extends ProgramPlugin {
 		private void createActions() {
 			/*
 			 * action = new DockingAction("My Action", getName()) {
-			 * 
+			 *
 			 * @Override public void actionPerformed(ActionContext context) {
-			 * 
+			 *
 			 * Msg.showInfo(getClass(), panel, "Custom Action", "Hello!"); } };
 			 * action.setToolBarData(new ToolBarData(Icons.ADD_ICON, null));
 			 * action.setEnabled(true); action.markHelpUnnecessary();

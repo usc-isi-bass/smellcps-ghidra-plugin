@@ -18,6 +18,8 @@ public class AngrRunner {
 	private final String elf_path;
 	private final InputArgs inputArgs;
 
+	private Process process;
+
 	public AngrRunner(String elf_path, InputArgs inputArgs) {
 		Properties config = new Properties();
 		String python_path = null;
@@ -47,10 +49,10 @@ public class AngrRunner {
 		System.out.println(inputArgsJsonStr);
 		try {
 			ProcessBuilder pb = new ProcessBuilder(python_path, script_path, this.elf_path, inputArgsJsonStr);
-			Process p = pb.start();
+			this.process = pb.start();
 
-			BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
-			BufferedReader error = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+			BufferedReader input = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 			String line;
 			while ((line = error.readLine()) != null) {
 				errorSb.append(line + "\n");
@@ -62,9 +64,9 @@ public class AngrRunner {
 				System.out.println("OUT: " + line);
 			}
 			System.out.println("Done reading from stdin");
-			
-			p.waitFor();
-			if (p.exitValue() != 0) {
+
+			process.waitFor();
+			if (process.exitValue() != 0) {
 				throw new PythonScriptException(errorSb.toString());
 			}
 			System.out.println("AngrRunner.run() check5");
@@ -78,6 +80,9 @@ public class AngrRunner {
 			e.printStackTrace();
 		}
 		return outputSb.toString();
+	}
+	public void stop() {
+		process.destroy();
 	}
 
 }
