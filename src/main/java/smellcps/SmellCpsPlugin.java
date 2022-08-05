@@ -388,11 +388,17 @@ public class SmellCpsPlugin extends ProgramPlugin {
 					Thread translationRunnerThread = new Thread() {
 						public void run() {
 							String translationTarget = outputJta.getText();
-							translateButton.setEnabled(false);
-							OverNetworkTranslation overNetworkTranslation = new OverNetworkTranslation(translationTarget);
-							String output = overNetworkTranslation.run();
-							outputJta.setText(output);
-							translateButton.setEnabled(true);
+							translationTarget = translationTarget.replaceAll("[\\t\\n\\r]+"," ");
+							translationTarget = translationTarget.strip();
+							if (Util.isAsciiPrintable(translationTarget)) {
+								translateButton.setEnabled(false);
+								OverNetworkTranslation overNetworkTranslation = new OverNetworkTranslation(translationTarget);
+								String output = overNetworkTranslation.run();
+								outputJta.setText(output);
+								translateButton.setEnabled(true);
+							} else {
+								JOptionPane.showMessageDialog (null, "Translation is only allowed for ASCII printable characters", "Translation Error", JOptionPane.ERROR_MESSAGE);
+							}
 						}
 					};
 					translationRunnerThread.start();
