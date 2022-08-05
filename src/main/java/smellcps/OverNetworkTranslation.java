@@ -3,6 +3,7 @@ package smellcps;
 import java.util.Properties;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.List;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -16,8 +17,11 @@ import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Paths;
 
+import java.lang.reflect.Type;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 public class OverNetworkTranslation {
 
@@ -54,7 +58,13 @@ public class OverNetworkTranslation {
 		try {
 			HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
 
-			return response.body();
+			Type type = new TypeToken<Map<String, List<String>>>(){}.getType();
+			Map<String, List<String>> myMap = gson.fromJson(response.body(), type);
+
+			String translation = myMap.get("translation").get(0);
+
+
+			return translation;
 		} catch (IOException e) {
 			e.printStackTrace();
 			return "Error IOException";
