@@ -304,6 +304,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 
 			JButton runButton = new JButton("Run");
 			JButton killButton = new JButton("Stop");
+			JButton translateButton = new JButton("Translate");
 
 			runButton.addActionListener(new ActionListener() {
 				public void actionPerformed(ActionEvent e) {
@@ -382,6 +383,27 @@ public class SmellCpsPlugin extends ProgramPlugin {
 				}
 			});
 			killButton.setEnabled(false);
+			translateButton.addActionListener(new ActionListener() {
+				public void actionPerformed(ActionEvent e) {
+					Thread translationRunnerThread = new Thread() {
+						public void run() {
+							String translationTarget = outputJta.getText();
+							translationTarget = translationTarget.replaceAll("[\\t\\n\\r]+"," ");
+							translationTarget = translationTarget.strip();
+							if (Util.isAsciiPrintable(translationTarget)) {
+								translateButton.setEnabled(false);
+								OverNetworkTranslation overNetworkTranslation = new OverNetworkTranslation(translationTarget);
+								String output = overNetworkTranslation.run();
+								outputJta.setText(output);
+								translateButton.setEnabled(true);
+							} else {
+								JOptionPane.showMessageDialog (null, "Translation is only allowed for ASCII printable characters", "Translation Error", JOptionPane.ERROR_MESSAGE);
+							}
+						}
+					};
+					translationRunnerThread.start();
+				}
+			});
 
 			panel.add(funcPanel);
 			panel.add(varCtypesPanel);
@@ -392,6 +414,7 @@ public class SmellCpsPlugin extends ProgramPlugin {
 			panel.add(runButton, BorderLayout.CENTER);
 			panel.add(killButton, BorderLayout.CENTER);
 			panel.add(new JScrollPane(outputJta));
+			panel.add(translateButton, BorderLayout.CENTER);
 
 			setVisible(true);
 		}
